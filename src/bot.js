@@ -5,11 +5,6 @@ board = new five.Board({
 });
 require("sylvester");
 
-//If your servos have "clockwise" orientation (as recommended by the BOM), this can be left alone. If you had no choice but
-// to use counter-clockwise servos, flip this to false, and the angles will all be inverted prior to sending to the servos. Note
-// that this assumes ALL servos have the same orientation. If there's demand, we can make each servo configurable
-servoClockwise = true
-
 var app = require('http').createServer(handler),
   io = require('socket.io').listen(app, {
     log: false
@@ -18,13 +13,13 @@ var app = require('http').createServer(handler),
 
   board.on("ready", function() {
     var servo1 = five.Servo({
-      pin: 9
-    });
-    var servo2 = five.Servo({
       pin: 10
     });
-    var servo3 = five.Servo({
+    var servo2 = five.Servo({
       pin: 11
+    });
+    var servo3 = five.Servo({
+      pin: 12
     });
 
     setTimeout(function() {}, 500);
@@ -38,23 +33,23 @@ var app = require('http').createServer(handler),
       s3: servo3
     });
 
-    var max = 42;
-    var min = 20;
+    var max = 37;
+    var min = 15;
     var range = max - min;
-    servo1.move(invertTheta(min));
-    servo2.move(invertTheta(min));
-    servo3.move(invertTheta(min));
+    servo1.move(min);
+    servo2.move(min);
+    servo3.move(min);
 
     var dance = function() {
-      servo1.move(invertTheta(parseInt((Math.random() * range) + min, 10)));
-      servo2.move(invertTheta(parseInt((Math.random() * range) + min, 10)));
-      servo3.move(invertTheta(parseInt((Math.random() * range) + min, 10)));
+      servo1.move(parseInt((Math.random() * range) + min, 10));
+      servo2.move(parseInt((Math.random() * range) + min, 10));
+      servo3.move(parseInt((Math.random() * range) + min, 10));
     };
 
     var dancer;
 
     start_dance = function() {
-      if (!dancer) dancer = setInterval(dance, 500);
+      if (!dancer) dancer = setInterval(dance, 100);
     }
 
     stop_dance = function() {
@@ -80,25 +75,14 @@ var app = require('http').createServer(handler),
     })
   });
 
-invertTheta = function(angle) {
-  if (!servoClockwise) {
-    inverseAngle = 180 - angle;
-    // console.log("Counter-clockwise angle: " + inverseAngle);
-    return inverseAngle;
-  } else {
-    // console.log("Clockwise angle: " + angle);
-    return angle;
-  }
-}
-
 go = function(x, y, z) {
   angles = ik.inverse(x, y, z);
   console.log("Moving to [" + x + ", " + y + ", " + z + "]");
-  // console.log("[" + invertTheta(angles[1]) + ", " + invertTheta(angles[2]) + ", " + invertTheta(angles[3]) + "]");
+  // console.log("[" + angles[1] + ", " + angles[2] + ", " + angles[3] + "]");
 
-  s1.move(invertTheta(angles[1]));
-  s2.move(invertTheta(angles[2]));
-  s3.move(invertTheta(angles[3]));
+  s1.move(angles[1]);
+  s2.move(angles[2]);
+  s3.move(angles[3]);
 }
 
 position = function() {
@@ -184,6 +168,7 @@ moveZ = function(zVal) {
 }
 
 deviceGo = function(x, y, touch) {
+  console.log("Got a click! [x: ", x, ", y: ", y, "]");
   // translate from device coordinates to bot coordinates
   var a = translationMatrix.elements[0][0],
     b = translationMatrix.elements[1][0],
@@ -249,14 +234,17 @@ calibrate = function() {
         if (iter == 1) {
           x += 20;
           y += 20;
+          console.log("Finding first point, going to [x: ", x, ", y: ", y, "]")
         }
         if (iter == 2) {
           x -= 30;
           y -= 35;
+          console.log("Finding second point, going to [x: ", x, ", y: ", y, "]")
         }
         doIt();
         if (iter == 2) {
           calculateTranslation();
+          console.log("Calibration complete. Here's the matrix:\n", translationMatrix);
         }
       }
     });
